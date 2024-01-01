@@ -3,6 +3,7 @@ package astnode
 import (
 	"SLang/util"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -90,10 +91,14 @@ func (d *Div) Eval() int {
 }
 */
 
+/*
+CodeGen Since variables can't be reassigned in LLVM, we can directly return the constant instead of assigning it to a new variable and returning that
+*/
 func (c *Const) CodeGen() (string, string) {
-	allc := irVariableService.GetNewAllocation()
-	str := fmt.Sprintf("%s = add i32 0, %d\n", allc, c.value)
-	return str, allc
+	//allc := irVariableService.GetNewAllocation()
+	//str := fmt.Sprintf("%s = add i32 0, %d\n", allc, c.value)
+	//return str, allc
+	return "", strconv.Itoa(c.value)
 }
 
 func (a *Add) CodeGen() (string, string) {
