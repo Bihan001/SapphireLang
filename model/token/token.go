@@ -8,7 +8,16 @@ const (
 	T_STAR
 	T_SLASH
 	T_INTLIT
+	T_PRINT
+	T_STATEMENT_TERMINATOR
 )
+
+const MAX_TOKEN_LENGTH = 512
+
+var TokenStringMap map[int]string = map[int]string{
+	T_PRINT:                "print",
+	T_STATEMENT_TERMINATOR: ";",
+}
 
 type Token struct {
 	token int

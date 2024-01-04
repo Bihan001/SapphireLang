@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"SLang/core/codegen"
+	"SLang/core/scanner"
 	"SLang/model/astnode"
 	"SLang/model/token"
 )
@@ -15,15 +17,41 @@ func NewParser() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(tokens []*token.Token) astnode.ASTNode {
+func (p *Parser) Parse(tokens []*token.Token) string {
 	p.pos = 0
 	if len(tokens) == 0 {
-		return nil
+		return ""
 	}
-	return p.parse(0, tokens)
+	return p.parseStatements(tokens)
 }
 
-func (p *Parser) parse(previousPrecedence int, tokens []*token.Token) astnode.ASTNode {
+func (p *Parser) parseStatements(tokens []*token.Token) string {
+	generatedCode := ""
+	for p.pos < len(tokens) {
+		scanner.MatchToken(tokens[p.pos], token.T_PRINT)
+		p.pos += 1
+
+		if p.pos >= len(tokens) {
+			panic("Expected expression")
+		}
+
+		treeRoot := p.parseBinaryExpr(0, tokens)
+		res, retValue := treeRoot.CodeGen()
+		generatedCode += res
+
+		generatedCode += codegen.GenPrintInt(retValue)
+
+		if p.pos >= len(tokens) {
+			panic("Expected statement terminator")
+		}
+
+		scanner.MatchToken(tokens[p.pos], token.T_STATEMENT_TERMINATOR)
+		p.pos += 1
+	}
+	return generatedCode
+}
+
+func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) astnode.ASTNode {
 	var left, right astnode.ASTNode
 
 	if tokens[p.pos].GetType() != token.T_INTLIT {
@@ -35,7 +63,7 @@ func (p *Parser) parse(previousPrecedence int, tokens []*token.Token) astnode.AS
 
 	// Process next element which should always be an operator
 	p.pos += 1
-	if p.pos >= len(tokens) {
+	if p.pos >= len(tokens) || tokens[p.pos].GetType() == token.T_STATEMENT_TERMINATOR {
 		return left
 	}
 
@@ -45,11 +73,11 @@ func (p *Parser) parse(previousPrecedence int, tokens []*token.Token) astnode.AS
 		// If current operator has higher precedence than previous operator, then process the right section
 		// Else return the left
 		p.pos += 1
-		right = p.parse(p.getOperatorPrecedence(operator), tokens)
+		right = p.parseBinaryExpr(p.getOperatorPrecedence(operator), tokens)
 
 		// Create new operator node and assign to left
 		left = astnode.NewOpNode(operator, left, right)
-		if p.pos >= len(tokens) {
+		if p.pos >= len(tokens) || tokens[p.pos].GetType() == token.T_STATEMENT_TERMINATOR {
 			break
 		}
 		operator = tokens[p.pos].GetType()

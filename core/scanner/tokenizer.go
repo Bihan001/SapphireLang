@@ -2,6 +2,8 @@ package scanner
 
 import (
 	"SLang/model/token"
+	"errors"
+	"fmt"
 	"strconv"
 	"unicode"
 )
@@ -32,26 +34,33 @@ func (t *Tokenizer) Tokenize() []*token.Token {
 
 		ch := t.peek()
 
-		switch ch {
-		case '+':
+		if ch == '+' {
 			tokens = append(tokens, token.NewToken(token.T_PLUS))
 			t.poll()
-		case '-':
+		} else if ch == '-' {
 			tokens = append(tokens, token.NewToken(token.T_MINUS))
 			t.poll()
-		case '*':
+		} else if ch == '*' {
 			tokens = append(tokens, token.NewToken(token.T_STAR))
 			t.poll()
-		case '/':
+		} else if ch == '/' {
 			tokens = append(tokens, token.NewToken(token.T_SLASH))
 			t.poll()
-		default:
-			if unicode.IsDigit(rune(ch)) {
-				newToken := token.NewToken(token.T_INTLIT, t.scanNumber())
-				tokens = append(tokens, newToken)
-			} else {
-				panic("Unrecognised character " + string(ch) + " on line " + strconv.Itoa(t.lineCount) + "\n")
+		} else if ch == token.TokenStringMap[token.T_STATEMENT_TERMINATOR][0] {
+			tokens = append(tokens, token.NewToken(token.T_STATEMENT_TERMINATOR))
+			t.poll()
+		} else if unicode.IsDigit(rune(ch)) {
+			newToken := token.NewToken(token.T_INTLIT, t.scanNumber())
+			tokens = append(tokens, newToken)
+		} else if unicode.IsLetter(rune(ch)) || ch == '_' {
+			identifier := t.scanIdentifier()
+			keyword, err := t.keyword(&identifier)
+			if err != nil {
+				panic(err)
 			}
+			tokens = append(tokens, keyword)
+		} else {
+			panic("Unrecognised character " + string(ch) + " on line " + strconv.Itoa(t.lineCount) + "\n")
 		}
 	}
 
@@ -94,4 +103,41 @@ func (t *Tokenizer) scanNumber() int {
 	}
 
 	return n
+}
+
+// keyword This method checks whether the given string matches any existing identifier or not
+func (t *Tokenizer) keyword(s *string) (*token.Token, error) {
+	if *s == token.TokenStringMap[token.T_PRINT] {
+		return token.NewToken(token.T_PRINT), nil
+	}
+	return nil, errors.New("Unrecognised symbol " + *s)
+}
+
+func (t *Tokenizer) scanIdentifier() string {
+	i := 0
+	identifier := ""
+
+	for t.pos < t.inputLength && (unicode.IsLetter(rune(t.peek())) || unicode.IsDigit(rune(t.peek())) || t.peek() == '_') {
+		if i >= token.MAX_TOKEN_LENGTH {
+			panic("Token length greater than maximum token length: " + strconv.Itoa(token.MAX_TOKEN_LENGTH))
+		}
+		identifier += string(t.peek())
+		i += 1
+		t.poll()
+	}
+
+	return identifier
+}
+
+func MatchToken(actualToken *token.Token, expectedTokenType int) {
+	if (*actualToken).GetType() == expectedTokenType {
+		return
+	}
+
+	res, ok := token.TokenStringMap[actualToken.GetType()]
+	if !ok {
+		res = strconv.Itoa(actualToken.GetValue())
+	}
+
+	panic(fmt.Sprintf("Expected %s but got %s", token.TokenStringMap[expectedTokenType], res))
 }

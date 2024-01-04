@@ -1,6 +1,7 @@
 package main
 
 import (
+	"SLang/core/codegen"
 	"SLang/core/parser"
 	"SLang/core/scanner"
 	"fmt"
@@ -32,15 +33,15 @@ func main() {
 
 	syntaxParser := parser.NewParser()
 
-	rootNode := syntaxParser.Parse(tokens)
+	output := syntaxParser.Parse(tokens)
 
-	llvmIR := "define i32 @main() {\nentry:\n"
+	llvmIR := codegen.GetGlobals()
 
-	generatedCode, returnValue := rootNode.CodeGen()
+	llvmIR += "define i32 @main() {\nentry:\n"
 
-	llvmIR += generatedCode
+	llvmIR += output
 
-	llvmIR += "ret i32 " + returnValue + "\n"
+	llvmIR += "ret i32 0\n"
 
 	llvmIR += "}"
 
