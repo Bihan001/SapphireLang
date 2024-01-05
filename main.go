@@ -35,32 +35,59 @@ func main() {
 
 	output := syntaxParser.Parse(tokens)
 
-	llvmIR := codegen.GetGlobals()
+	llvmIR := ""
 
-	llvmIR += "define i32 @main() {\nentry:\n"
+	llvmIR += codegen.GenPrefixCode()
 
 	llvmIR += output
 
-	llvmIR += "ret i32 0\n"
-
-	llvmIR += "}"
-
+	llvmIR += codegen.GenPostfixCode()
 	//fmt.Println(llvmIR)
 
-	irCodeOutputPath := "resources/output.ll"
-	binaryOutputPath := "resources/output"
+	asmCodeOutputPath := "resources/output.asm"
+	//binaryOutputPath := "resources/output"
 
-	writeIRCodeToFile(llvmIR, irCodeOutputPath)
+	writeAsmCodeToFile(llvmIR, asmCodeOutputPath)
 
-	buildAndLinkIRCode(irCodeOutputPath, binaryOutputPath)
+	//buildAndLinkAssemblyCode(asmCodeOutputPath, binaryOutputPath)
 
 }
 
-func writeIRCodeToFile(ir string, outputPath string) {
+func writeAsmCodeToFile(ir string, outputPath string) {
 	outErr := os.WriteFile(outputPath, []byte(ir), 0644)
 
 	if outErr != nil {
 		panic(outErr)
+	}
+}
+
+func buildAndLinkAssemblyCode(inputPath string, outputPath string) {
+	/*
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$ vi a.asm
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$ nasm -felf64 a.asm -o a.o
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$ gcc -no-pie a.o -o a
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$ ./a
+		16
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$ $?
+		69: command not found
+		apadmin@apdc1n-dev-mayank-vm:~/nasm$
+	*/
+	objectCodeOutputPath := "output.o"
+	cmd := exec.Command("nasm", "-felf64", inputPath, "-o", objectCodeOutputPath)
+	err := cmd.Run()
+	if err != nil {
+		panic("Failed to compile .asm to .o")
+	}
+
+	cmd = exec.Command("gcc", "-no-pie", objectCodeOutputPath, "-o", outputPath)
+	err = cmd.Run()
+	if err != nil {
+		panic("Failed to link .o to executable")
+	}
+
+	err = os.Remove("output.o")
+	if err != nil {
+		panic("Failed to remove object code file")
 	}
 }
 

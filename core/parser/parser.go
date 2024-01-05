@@ -87,7 +87,7 @@ func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) 
 }
 
 func (p *Parser) getOperatorPrecedence(operator int) int {
-	if operator == token.T_INTLIT {
+	if operator != token.T_PLUS && operator != token.T_MINUS && operator != token.T_STAR && operator != token.T_SLASH {
 		panic("Syntax error")
 	}
 	return operatorPrecedenceTable[operator]

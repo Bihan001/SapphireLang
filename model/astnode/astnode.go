@@ -1,9 +1,7 @@
 package astnode
 
 import (
-	"SLang/util"
-	"fmt"
-	"strconv"
+	"SLang/core/codegen"
 )
 
 const (
@@ -14,10 +12,7 @@ const (
 	A_INTLIT
 )
 
-var irVariableService *util.IRVariableService = util.GetNewIRVariableService()
-
 type ASTNode interface {
-	//Eval() int
 	CodeGen() (string, string)
 }
 
@@ -69,102 +64,42 @@ func NewOpNode(op int, left ASTNode, right ASTNode) ASTNode {
 	}
 }
 
-/*
-func (c *Const) Eval() int {
-	return c.value
-}
-
-func (a *Add) Eval() int {
-	return a.left.Eval() + a.right.Eval()
-}
-
-func (s *Sub) Eval() int {
-	return s.left.Eval() - s.right.Eval()
-}
-
-func (m *Mul) Eval() int {
-	return m.left.Eval() * m.right.Eval()
-}
-
-func (d *Div) Eval() int {
-	return d.left.Eval() / d.right.Eval()
-}
-*/
-
-/*
-CodeGen Since variables can't be reassigned in LLVM, we can directly return the constant instead of assigning it to a new variable and returning that
-*/
 func (c *Const) CodeGen() (string, string) {
-	//allc := irVariableService.GetNewAllocation()
-	//str := fmt.Sprintf("%s = add i32 0, %d\n", allc, c.value)
-	//return str, allc
-	return "", strconv.Itoa(c.value)
+	return codegen.GetAllocateInstruction(c.value)
 }
 
 func (a *Add) CodeGen() (string, string) {
-	lstr, lval := a.left.CodeGen()
-	rstr, rval := a.right.CodeGen()
-	allc := irVariableService.GetNewAllocation()
-	str := fmt.Sprintf("%s = add i32 %s, %s\n", allc, lval, rval)
-	err1 := irVariableService.FreeAllocation(lval)
-	err2 := irVariableService.FreeAllocation(rval)
-	if err1 != nil || err2 != nil {
-		if err1 != nil {
-			panic(err1)
-		} else {
-			panic(err2)
-		}
-	}
-	return lstr + rstr + str, allc
+	leftInstruction, leftValue := a.left.CodeGen()
+	rightInstruction, rightValue := a.right.CodeGen()
+
+	instruction := codegen.GetAddInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
 }
 
 func (s *Sub) CodeGen() (string, string) {
-	lstr, lval := s.left.CodeGen()
-	rstr, rval := s.right.CodeGen()
-	allc := irVariableService.GetNewAllocation()
-	str := fmt.Sprintf("%s = sub i32 %s, %s\n", allc, lval, rval)
-	err1 := irVariableService.FreeAllocation(lval)
-	err2 := irVariableService.FreeAllocation(rval)
-	if err1 != nil || err2 != nil {
-		if err1 != nil {
-			panic(err1)
-		} else {
-			panic(err2)
-		}
-	}
-	return lstr + rstr + str, allc
+	leftInstruction, leftValue := s.left.CodeGen()
+	rightInstruction, rightValue := s.right.CodeGen()
+
+	instruction := codegen.GetSubtractInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
 }
 
 func (m *Mul) CodeGen() (string, string) {
-	lstr, lval := m.left.CodeGen()
-	rstr, rval := m.right.CodeGen()
-	allc := irVariableService.GetNewAllocation()
-	str := fmt.Sprintf("%s = mul i32 %s, %s\n", allc, lval, rval)
-	err1 := irVariableService.FreeAllocation(lval)
-	err2 := irVariableService.FreeAllocation(rval)
-	if err1 != nil || err2 != nil {
-		if err1 != nil {
-			panic(err1)
-		} else {
-			panic(err2)
-		}
-	}
-	return lstr + rstr + str, allc
+	leftInstruction, leftValue := m.left.CodeGen()
+	rightInstruction, rightValue := m.right.CodeGen()
+
+	instruction := codegen.GetMultiplyInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
 }
 
 func (d *Div) CodeGen() (string, string) {
-	lstr, lval := d.left.CodeGen()
-	rstr, rval := d.right.CodeGen()
-	allc := irVariableService.GetNewAllocation()
-	str := fmt.Sprintf("%s = sdiv i32 %s, %s\n", allc, lval, rval)
-	err1 := irVariableService.FreeAllocation(lval)
-	err2 := irVariableService.FreeAllocation(rval)
-	if err1 != nil || err2 != nil {
-		if err1 != nil {
-			panic(err1)
-		} else {
-			panic(err2)
-		}
-	}
-	return lstr + rstr + str, allc
+	leftInstruction, leftValue := d.left.CodeGen()
+	rightInstruction, rightValue := d.right.CodeGen()
+
+	instruction := codegen.GetDivideInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
 }
