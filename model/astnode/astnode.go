@@ -2,6 +2,8 @@ package astnode
 
 import (
 	"SLang/core/codegen"
+	"SLang/model/symboltable"
+	"strconv"
 )
 
 const (
@@ -10,7 +12,12 @@ const (
 	A_MULTIPLY
 	A_DIVIDE
 	A_INTLIT
+	A_IDENT
+	A_LIDENT
+	A_ASSIGN
 )
+
+var symbolTable *symboltable.SymbolTable = symboltable.NewSymbolTable()
 
 type ASTNode interface {
 	CodeGen() (string, string)
@@ -19,6 +26,16 @@ type ASTNode interface {
 type Const struct {
 	ASTNode
 	value int
+}
+
+type Ident struct {
+	ASTNode
+	symbolTableIdx int
+}
+
+type LIdent struct {
+	ASTNode
+	symbolTableIndex int
 }
 
 type Add struct {
@@ -45,8 +62,23 @@ type Div struct {
 	right ASTNode
 }
 
-func NewLeafNode(value int) ASTNode {
-	return &Const{value: value}
+type Assign struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+func NewLeafNode(nodeType int, value int) ASTNode {
+	switch nodeType {
+	case A_INTLIT:
+		return &Const{value: value}
+	case A_IDENT:
+		return &Ident{symbolTableIdx: value}
+	case A_LIDENT:
+		return &LIdent{symbolTableIndex: value}
+	default:
+		panic("Invalid node type")
+	}
 }
 
 func NewOpNode(op int, left ASTNode, right ASTNode) ASTNode {
@@ -59,13 +91,39 @@ func NewOpNode(op int, left ASTNode, right ASTNode) ASTNode {
 		return &Mul{left: left, right: right}
 	case A_DIVIDE:
 		return &Div{left: left, right: right}
+	case A_ASSIGN:
+		return &Assign{left: left, right: right}
 	default:
 		panic("Unknown operator")
 	}
 }
 
 func (c *Const) CodeGen() (string, string) {
-	return codegen.GetAllocateInstruction(c.value)
+	return codegen.GetRegisterAllocateInstruction(strconv.Itoa(c.value))
+}
+
+func (l *LIdent) CodeGen() (string, string) {
+	symbol, err := symbolTable.GetSymbolAtIndex(l.symbolTableIndex)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if symbol.Status == symboltable.SYM_STATUS_PENDING {
+		return codegen.GetVariableAllocateInstruction(symbol.Name)
+	}
+
+	return "", codegen.GetVariableInstructionFromSymbol(symbol.Name)
+}
+
+func (i *Ident) CodeGen() (string, string) {
+	symbol, err := symbolTable.GetSymbolAtIndex(i.symbolTableIdx)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return codegen.GetRegisterAllocateInstruction(codegen.GetVariableInstructionFromSymbol(symbol.Name))
 }
 
 func (a *Add) CodeGen() (string, string) {
@@ -100,6 +158,15 @@ func (d *Div) CodeGen() (string, string) {
 	rightInstruction, rightValue := d.right.CodeGen()
 
 	instruction := codegen.GetDivideInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (a *Assign) CodeGen() (string, string) {
+	leftInstruction, leftValue := a.left.CodeGen()
+	rightInstruction, rightValue := a.right.CodeGen()
+
+	instruction := codegen.GetVariableAssignInstruction(leftValue, rightValue)
 
 	return leftInstruction + rightInstruction + instruction, leftValue
 }

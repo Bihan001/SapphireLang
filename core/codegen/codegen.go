@@ -26,13 +26,14 @@ LC0: db "%d",10,0
 printint:
 	push	rbp
 	mov	rbp, rsp
+    ; Subtracting 16 bytes i.e. 2 stack entries (1 stack entry = 8 bytes in x86_64 systems). The second one is already occupied by rsp, so first one is available for local variables.
 	sub	rsp, 16
-	mov	[rbp-4], edi
-	mov	eax, [rbp-4]
-	mov	esi, eax
-	lea	rdi, [rel LC0]
-	mov	eax, 0
-	call	printf
+	mov	[rbp-8], rdi
+	mov	rax, [rbp-8]
+	lea	rdi, [rel LC0] ; First parameter for printf
+	mov	rsi, rax ; Second parameter for printf
+	mov	rax, 0 ; Number of vector registers used. In this case, it's 0.
+	call printf
 	nop
 	leave
 	ret
@@ -45,9 +46,9 @@ main:
 
 func GenPostfixCode() string {
 	return `
-	; Returning with code 69. 60 is code for sys_exit and 69 is return value
+	; Returning with code 0. 60 is code for sys_exit and 0 is return value
 	mov rax, 60
-	mov rdi, 69
+	mov rdi, 0
 	syscall
 `
 }
@@ -83,8 +84,28 @@ func GetDivideInstruction(a string, b string) string {
 	return str
 }
 
-func GetAllocateInstruction(a int) (string, string) {
+func GetRegisterAllocateInstruction(a string) (string, string) {
 	allc := registerService.GetNewRegister()
-	instruction := fmt.Sprintf("\tmov %s, %d\n", allc, a)
+	instruction := fmt.Sprintf("\tmov %s, %s\n", allc, a)
 	return instruction, allc
+}
+
+func GetVariableAllocateInstruction(symbol string) (string, string) {
+	str := fmt.Sprintf("\tcommon %s 8:8\n", symbol)
+	return str, GetVariableInstructionFromSymbol(symbol)
+}
+
+func GetVariableInstructionFromSymbol(symbol string) string {
+	return fmt.Sprintf("[%s]", symbol)
+}
+
+func GetVariableAssignInstruction(left string, right string) string {
+	str := fmt.Sprintf("\tmov %s, %s\n", left, right)
+
+	// Free only if its a register and not a variable
+	if len(right) < 2 || (right[0] != '[' && right[len(right)-1] != ']') {
+		registerService.FreeRegister(right)
+	}
+
+	return str
 }

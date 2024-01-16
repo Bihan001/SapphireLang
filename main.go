@@ -45,11 +45,11 @@ func main() {
 	//fmt.Println(llvmIR)
 
 	asmCodeOutputPath := "resources/output.asm"
-	//binaryOutputPath := "resources/output"
+	binaryOutputPath := "resources/output"
 
 	writeAsmCodeToFile(llvmIR, asmCodeOutputPath)
 
-	//buildAndLinkAssemblyCode(asmCodeOutputPath, binaryOutputPath)
+	buildAndLinkAssemblyCode(asmCodeOutputPath, binaryOutputPath)
 
 }
 
