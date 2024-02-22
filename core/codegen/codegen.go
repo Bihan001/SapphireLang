@@ -7,6 +7,15 @@ import (
 
 var registerService *util.RegisterService = util.GetNewRegisterService()
 
+const (
+	CMP_GT = iota
+	CMP_LT
+	CMP_GTE
+	CMP_LTE
+	CMP_EQ
+	CMP_NE
+)
+
 var globalStr = ``
 
 func GetGlobals() string {
@@ -107,5 +116,18 @@ func GetVariableAssignInstruction(left string, right string) string {
 		registerService.FreeRegister(right)
 	}
 
+	return str
+}
+
+func GetCompareInstruction(left string, right string, how int) string {
+	str := fmt.Sprintf("\tcmp %s, %s\n", left, right)
+	howMap := map[int]string{CMP_GT: "setg", CMP_LT: "setl", CMP_GTE: "setge", CMP_LTE: "setle", CMP_EQ: "sete", CMP_NE: "setne"}
+	howInstruction, ok := howMap[how]
+	if !ok {
+		panic("invalid how instruction")
+	}
+	str += fmt.Sprintf("\t%s %s\n", howInstruction, registerService.GetLowerByte(left))
+	str += fmt.Sprintf("\tand %s, 255\n", left)
+	registerService.FreeRegister(right)
 	return str
 }

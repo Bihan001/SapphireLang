@@ -47,11 +47,40 @@ func (t *Tokenizer) Tokenize() []*token.Token {
 		} else if ch == '/' {
 			tokens = append(tokens, token.NewToken(token.T_SLASH))
 			t.poll()
+		} else if ch == token.TokenStringMap[token.T_LT][0] {
+			t.poll()
+			if t.peek() == token.TokenStringMap[token.T_LTE][1] {
+				tokens = append(tokens, token.NewToken(token.T_LTE))
+				t.poll()
+			} else {
+				tokens = append(tokens, token.NewToken(token.T_LT))
+			}
+		} else if ch == token.TokenStringMap[token.T_GT][0] {
+			t.poll()
+			if t.peek() == token.TokenStringMap[token.T_GTE][1] {
+				tokens = append(tokens, token.NewToken(token.T_GTE))
+				t.poll()
+			} else {
+				tokens = append(tokens, token.NewToken(token.T_GT))
+			}
+		} else if ch == token.TokenStringMap[token.T_EQ][0] {
+			t.poll()
+			if t.peek() == token.TokenStringMap[token.T_EQ][1] {
+				tokens = append(tokens, token.NewToken(token.T_EQ))
+				t.poll()
+			} else {
+				tokens = append(tokens, token.NewToken(token.T_ASSIGNMENT))
+			}
+		} else if ch == token.TokenStringMap[token.T_NE][0] {
+			t.poll()
+			if t.peek() == token.TokenStringMap[token.T_NE][1] {
+				tokens = append(tokens, token.NewToken(token.T_NE))
+				t.poll()
+			} else {
+				panic("no symbol starting with " + string(ch) + " on line " + strconv.Itoa(t.lineCount) + " found\n")
+			}
 		} else if ch == token.TokenStringMap[token.T_STATEMENT_TERMINATOR][0] {
 			tokens = append(tokens, token.NewToken(token.T_STATEMENT_TERMINATOR))
-			t.poll()
-		} else if ch == token.TokenStringMap[token.T_ASSIGNMENT][0] {
-			tokens = append(tokens, token.NewToken(token.T_ASSIGNMENT))
 			t.poll()
 		} else if unicode.IsDigit(rune(ch)) {
 			newToken := token.NewToken(token.T_INTLIT, t.scanNumber())

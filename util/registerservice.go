@@ -1,11 +1,13 @@
 package util
 
 import (
+	"fmt"
 	"strconv"
 )
 
 type RegisterService struct {
-	registerMap map[string]bool
+	registerMap          map[string]bool
+	lowerByteRegisterMap map[string]string
 }
 
 var allocator *RegisterService
@@ -13,7 +15,8 @@ var allocator *RegisterService
 func GetNewRegisterService() *RegisterService {
 	if allocator == nil {
 		allocator = &RegisterService{
-			registerMap: map[string]bool{"r8": false, "r9": false, "r10": false, "r11": false, "r12": false, "r13": false, "r14": false, "r15": false},
+			registerMap:          map[string]bool{"r8": false, "r9": false, "r10": false, "r11": false, "r12": false, "r13": false, "r14": false, "r15": false},
+			lowerByteRegisterMap: map[string]string{"r8": "r8b", "r9": "r9b", "r10": "r10b", "r11": "r11b", "r12": "r12b", "r13": "r13b", "r14": "r14b", "r15": "r15b"},
 		}
 	}
 	return allocator
@@ -27,6 +30,14 @@ func (a *RegisterService) GetNewRegister() string {
 		}
 	}
 	panic("failed to get new register")
+}
+
+func (a *RegisterService) GetLowerByte(register string) string {
+	val, ok := a.lowerByteRegisterMap[register]
+	if !ok {
+		panic(fmt.Sprintf("cannot find lower byte of %s", register))
+	}
+	return val
 }
 
 func (a *RegisterService) FreeRegister(allc string) {

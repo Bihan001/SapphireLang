@@ -7,10 +7,27 @@ import (
 	"SLang/model/symboltable"
 	"SLang/model/token"
 	"SLang/model/tokentable"
+	"SLang/util"
 	"strconv"
 )
 
-var operatorPrecedenceTable = []int{10, 10, 20, 20, 0}
+// var operatorPrecedenceTable = []int{10, 10, 20, 20, 0}
+var operatorPrecedenceTable = map[int]int{
+	token.T_STAR:       10,
+	token.T_SLASH:      10,
+	token.T_PLUS:       9,
+	token.T_MINUS:      9,
+	token.T_LT:         8,
+	token.T_LTE:        8,
+	token.T_GT:         8,
+	token.T_GTE:        8,
+	token.T_EQ:         7,
+	token.T_NE:         7,
+	token.T_INTLIT:     0,
+	token.T_IDENTIFIER: 0,
+}
+
+var registerService = util.GetNewRegisterService()
 
 type Parser struct {
 	pos int
@@ -34,6 +51,8 @@ func (p *Parser) Parse(tokens []*token.Token) string {
 func (p *Parser) parseStatements(tokens []*token.Token) string {
 	generatedCode := ""
 	for p.pos < len(tokens) {
+
+		registerService.FreeAllRegisters()
 
 		switch tokens[p.pos].GetType() {
 		case token.T_PRINT:
@@ -94,7 +113,7 @@ func (p *Parser) parseVariableDeclaration(tokens []*token.Token, generatedCode *
 	identifierIdx := symbolTable.AddSymbol(tokenValue)
 
 	// generate code
-	node := astnode.NewLeafNode(astnode.A_LIDENT, identifierIdx)
+	node := astnode.NewLeafNode(token.T_LIDENTIFIER, identifierIdx)
 	resCode, retValue := node.CodeGen()
 	*generatedCode += resCode
 
@@ -124,13 +143,13 @@ func (p *Parser) parseAssignment(tokens []*token.Token, generatedCode *string) s
 		panic("Undeclared variable " + tokenValue)
 	}
 
-	right = astnode.NewLeafNode(astnode.A_LIDENT, identSymbolIdx)
+	right = astnode.NewLeafNode(token.T_LIDENTIFIER, identSymbolIdx)
 
 	p.assignment(tokens[p.pos])
 
 	left = p.parseBinaryExpr(0, tokens)
 
-	tree := astnode.NewOpNode(astnode.A_ASSIGN, right, left)
+	tree := astnode.NewOpNode(token.T_ASSIGNMENT, right, left)
 	resCode, retValue := tree.CodeGen()
 
 	// generate code
@@ -147,7 +166,7 @@ func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) 
 	{
 		switch tokens[p.pos].GetType() {
 		case token.T_INTLIT:
-			left = astnode.NewLeafNode(astnode.A_INTLIT, tokens[p.pos].GetValue())
+			left = astnode.NewLeafNode(token.T_INTLIT, tokens[p.pos].GetValue())
 			break
 		case token.T_IDENTIFIER:
 			tokenValue, ok := tokenTable.GetTokenAtPosition(tokens[p.pos].GetValue())
@@ -158,10 +177,10 @@ func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) 
 			if identSymbolIdx == -1 {
 				panic("Undeclared variable " + tokenValue)
 			}
-			left = astnode.NewLeafNode(astnode.A_IDENT, identSymbolIdx)
+			left = astnode.NewLeafNode(token.T_IDENTIFIER, identSymbolIdx)
 			break
 		default:
-			panic("Invalid operand " + string(rune(tokens[p.pos].GetValue())))
+			panic("invalid operand " + string(rune(tokens[p.pos].GetValue())))
 		}
 	}
 
@@ -191,10 +210,11 @@ func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) 
 }
 
 func (p *Parser) getOperatorPrecedence(operator int) int {
-	if operator != token.T_PLUS && operator != token.T_MINUS && operator != token.T_STAR && operator != token.T_SLASH {
+	precedence, ok := operatorPrecedenceTable[operator]
+	if !ok {
 		panic("Syntax error - Invalid operator in expression")
 	}
-	return operatorPrecedenceTable[operator]
+	return precedence
 }
 
 func (p *Parser) semi(actualToken *token.Token) {

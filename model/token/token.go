@@ -13,15 +13,28 @@ const (
 	T_INT
 	T_ASSIGNMENT
 	T_IDENTIFIER
+	T_LIDENTIFIER
+	T_LT
+	T_GT
+	T_EQ
+	T_NE
+	T_LTE
+	T_GTE
 )
 
 const MAX_TOKEN_LENGTH = 512
 
-var TokenStringMap map[int]string = map[int]string{
+var TokenStringMap = map[int]string{
 	T_PRINT:                "print",
 	T_STATEMENT_TERMINATOR: ";",
 	T_INT:                  "int",
 	T_ASSIGNMENT:           "=",
+	T_LT:                   "<",
+	T_GT:                   ">",
+	T_EQ:                   "==",
+	T_NE:                   "!=",
+	T_LTE:                  "<=",
+	T_GTE:                  ">=",
 }
 
 type Token struct {

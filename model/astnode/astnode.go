@@ -3,18 +3,8 @@ package astnode
 import (
 	"SLang/core/codegen"
 	"SLang/model/symboltable"
+	"SLang/model/token"
 	"strconv"
-)
-
-const (
-	A_ADD = iota
-	A_SUBTRACT
-	A_MULTIPLY
-	A_DIVIDE
-	A_INTLIT
-	A_IDENT
-	A_LIDENT
-	A_ASSIGN
 )
 
 var symbolTable *symboltable.SymbolTable = symboltable.NewSymbolTable()
@@ -68,13 +58,49 @@ type Assign struct {
 	right ASTNode
 }
 
+type GreaterThan struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+type LessThan struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+type GreaterThanEquals struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+type LessThanEquals struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+type Equals struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
+type NotEquals struct {
+	ASTNode
+	left  ASTNode
+	right ASTNode
+}
+
 func NewLeafNode(nodeType int, value int) ASTNode {
 	switch nodeType {
-	case A_INTLIT:
+	case token.T_INTLIT:
 		return &Const{value: value}
-	case A_IDENT:
+	case token.T_IDENTIFIER:
 		return &Ident{symbolTableIdx: value}
-	case A_LIDENT:
+	case token.T_LIDENTIFIER:
 		return &LIdent{symbolTableIndex: value}
 	default:
 		panic("Invalid node type")
@@ -83,16 +109,28 @@ func NewLeafNode(nodeType int, value int) ASTNode {
 
 func NewOpNode(op int, left ASTNode, right ASTNode) ASTNode {
 	switch op {
-	case A_ADD:
+	case token.T_PLUS:
 		return &Add{left: left, right: right}
-	case A_SUBTRACT:
+	case token.T_MINUS:
 		return &Sub{left: left, right: right}
-	case A_MULTIPLY:
+	case token.T_STAR:
 		return &Mul{left: left, right: right}
-	case A_DIVIDE:
+	case token.T_SLASH:
 		return &Div{left: left, right: right}
-	case A_ASSIGN:
+	case token.T_ASSIGNMENT:
 		return &Assign{left: left, right: right}
+	case token.T_GT:
+		return &GreaterThan{left: left, right: right}
+	case token.T_LT:
+		return &LessThan{left: left, right: right}
+	case token.T_GTE:
+		return &GreaterThanEquals{left: left, right: right}
+	case token.T_LTE:
+		return &LessThanEquals{left: left, right: right}
+	case token.T_EQ:
+		return &Equals{left: left, right: right}
+	case token.T_NE:
+		return &NotEquals{left: left, right: right}
 	default:
 		panic("Unknown operator")
 	}
@@ -167,6 +205,60 @@ func (a *Assign) CodeGen() (string, string) {
 	rightInstruction, rightValue := a.right.CodeGen()
 
 	instruction := codegen.GetVariableAssignInstruction(leftValue, rightValue)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (gt *GreaterThan) CodeGen() (string, string) {
+	leftInstruction, leftValue := gt.left.CodeGen()
+	rightInstruction, rightValue := gt.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_GT)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (gte *GreaterThanEquals) CodeGen() (string, string) {
+	leftInstruction, leftValue := gte.left.CodeGen()
+	rightInstruction, rightValue := gte.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_GTE)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (lt *LessThan) CodeGen() (string, string) {
+	leftInstruction, leftValue := lt.left.CodeGen()
+	rightInstruction, rightValue := lt.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_LT)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (lte *LessThanEquals) CodeGen() (string, string) {
+	leftInstruction, leftValue := lte.left.CodeGen()
+	rightInstruction, rightValue := lte.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_LTE)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (eq *Equals) CodeGen() (string, string) {
+	leftInstruction, leftValue := eq.left.CodeGen()
+	rightInstruction, rightValue := eq.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_EQ)
+
+	return leftInstruction + rightInstruction + instruction, leftValue
+}
+
+func (ne *NotEquals) CodeGen() (string, string) {
+	leftInstruction, leftValue := ne.left.CodeGen()
+	rightInstruction, rightValue := ne.right.CodeGen()
+
+	instruction := codegen.GetCompareInstruction(leftValue, rightValue, codegen.CMP_NE)
 
 	return leftInstruction + rightInstruction + instruction, leftValue
 }
