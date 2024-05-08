@@ -17,6 +17,7 @@ const (
 )
 
 var globalStr = ``
+var labelCounter = 0
 
 func GetGlobals() string {
 	return globalStr
@@ -24,6 +25,11 @@ func GetGlobals() string {
 
 func AppendToGlobals(str string) {
 	globalStr += str
+}
+
+func GetNewLabel() string {
+	labelCounter++
+	return fmt.Sprintf("L%d", labelCounter)
 }
 
 func GenPrefixCode() string {
@@ -129,5 +135,12 @@ func GetCompareInstruction(left string, right string, how int) string {
 	str += fmt.Sprintf("\t%s %s\n", howInstruction, registerService.GetLowerByte(left))
 	str += fmt.Sprintf("\tand %s, 255\n", left)
 	registerService.FreeRegister(right)
+	return str
+}
+
+func GetIfInstruction(conditionResultRegister string, ifLabel string, elseLabel string) string {
+	str := fmt.Sprintf("\tcmp %s, 0\n", conditionResultRegister)
+	str += fmt.Sprintf("\tje %s\n", elseLabel)
+	registerService.FreeRegister(conditionResultRegister)
 	return str
 }

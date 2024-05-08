@@ -45,24 +45,49 @@ func (p *Parser) Parse(tokens []*token.Token) string {
 	if len(tokens) == 0 {
 		return ""
 	}
-	return p.parseStatements(tokens)
+	generatedCode := ""
+	p.parseStatements(tokens, &generatedCode)
+	return generatedCode
 }
 
-func (p *Parser) parseStatements(tokens []*token.Token) string {
-	generatedCode := ""
+func (p *Parser) parseCompoundStatement(tokens []*token.Token, generatedCode *string) string {
+	if p.pos >= len(tokens) {
+		panic("Expected left brace")
+	}
+
+	p.lbrace(tokens)
+
+	label := codegen.GetNewLabel()
+
+	*generatedCode += label + ":\n"
+
+	p.parseStatements(tokens, generatedCode)
+
+	// p.rbrace(tokens)
+
+	return label
+}
+
+func (p *Parser) parseStatements(tokens []*token.Token, generatedCode *string) {
 	for p.pos < len(tokens) {
 
 		registerService.FreeAllRegisters()
 
 		switch tokens[p.pos].GetType() {
 		case token.T_PRINT:
-			p.parsePrintStatement(tokens, &generatedCode)
+			p.parsePrintStatement(tokens, generatedCode)
 			break
 		case token.T_INT:
-			p.parseVariableDeclaration(tokens, &generatedCode)
+			p.parseVariableDeclaration(tokens, generatedCode)
 			break
 		case token.T_IDENTIFIER:
-			p.parseAssignment(tokens, &generatedCode)
+			p.parseAssignment(tokens, generatedCode)
+			break
+		case token.T_IF:
+			p.parseIfStatement(tokens, generatedCode)
+			break
+		case token.T_RBRACE:
+			p.rbrace(tokens)
 			break
 		default:
 			{
@@ -74,16 +99,49 @@ func (p *Parser) parseStatements(tokens []*token.Token) string {
 			}
 		}
 	}
-	return generatedCode
+}
+
+func (p *Parser) parseIfStatement(tokens []*token.Token, generatedCode *string) {
+	if p.pos >= len(tokens) {
+		panic("Expected if statement")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_IF)
+	p.pos += 1
+
+	p.lparen(tokens)
+
+	condition := p.parseBinaryExpr(0, tokens)
+	res, retValue := condition.CodeGen()
+	*generatedCode += res
+
+	p.semi(tokens) // Ending binary expressions with ; for now
+	p.rparen(tokens)
+
+	returnLabel := codegen.GetNewLabel()
+	
+	ifLabel := p.parseCompoundStatement(tokens, generatedCode)
+	*generatedCode += "\tjmp " + returnLabel + "\n"
+
+	elseLabel := ""
+
+	if p.pos < len(tokens) && tokens[p.pos].GetType() == token.T_ELSE {
+		p.pos += 1
+		elseLabel = p.parseCompoundStatement(tokens, generatedCode)
+	} else {
+		elseLabel = returnLabel
+	}
+
+	*generatedCode += codegen.GetIfInstruction(retValue, ifLabel, elseLabel)
+	*generatedCode += returnLabel + ":\n"
 }
 
 func (p *Parser) parsePrintStatement(tokens []*token.Token, generatedCode *string) {
+	if p.pos >= len(tokens) {
+		panic("Expected print statement")
+	}
+
 	scanner.MatchToken(tokens[p.pos], token.T_PRINT)
 	p.pos += 1
-
-	if p.pos >= len(tokens) {
-		panic("Expected expression")
-	}
 
 	treeRoot := p.parseBinaryExpr(0, tokens)
 	res, retValue := treeRoot.CodeGen()
@@ -91,21 +149,20 @@ func (p *Parser) parsePrintStatement(tokens []*token.Token, generatedCode *strin
 
 	*generatedCode += codegen.GenPrintInt(retValue)
 
-	if p.pos >= len(tokens) {
-		panic("Expected statement terminator")
-	}
-
-	p.semi(tokens[p.pos])
+	p.semi(tokens)
 }
 
 func (p *Parser) parseVariableDeclaration(tokens []*token.Token, generatedCode *string) string {
+	if p.pos >= len(tokens) {
+		panic("Expected variable declaration")
+	}
 	scanner.MatchToken(tokens[p.pos], token.T_INT)
 	p.pos += 1
 
 	// Get actual token value (string) from the tokenTable using token.GetValue()
 	// Then create a new symbol in the symbol table using the fetched token value (string)
 	identToken := tokens[p.pos]
-	p.ident(tokens[p.pos])
+	p.ident(tokens)
 	tokenValue, ok := tokenTable.GetTokenAtPosition(identToken.GetValue())
 	if !ok {
 		panic("Unrecognised token " + tokenValue)
@@ -119,21 +176,28 @@ func (p *Parser) parseVariableDeclaration(tokens []*token.Token, generatedCode *
 
 	symbolTable.UpdateStatus(tokenValue, symboltable.SYM_STATUS_DECLARED)
 
+	if p.pos >= len(tokens) {
+		panic("Expected statement terminator or assignment")
+	}
+
 	if tokens[p.pos].GetType() == token.T_ASSIGNMENT {
 		p.pos -= 1
 		p.parseAssignment(tokens, generatedCode)
 	} else {
-		p.semi(tokens[p.pos])
+		p.semi(tokens)
 	}
 
 	return retValue
 }
 
 func (p *Parser) parseAssignment(tokens []*token.Token, generatedCode *string) string {
+	if p.pos >= len(tokens) {
+		panic("Expected identifier")
+	}
 	var left, right astnode.ASTNode
 
 	identToken := tokens[p.pos]
-	p.ident(tokens[p.pos])
+	p.ident(tokens)
 	tokenValue, ok := tokenTable.GetTokenAtPosition(identToken.GetValue())
 	if !ok {
 		panic("Unrecognised token")
@@ -145,7 +209,7 @@ func (p *Parser) parseAssignment(tokens []*token.Token, generatedCode *string) s
 
 	right = astnode.NewLeafNode(token.T_LIDENTIFIER, identSymbolIdx)
 
-	p.assignment(tokens[p.pos])
+	p.assignment(tokens)
 
 	left = p.parseBinaryExpr(0, tokens)
 
@@ -155,12 +219,16 @@ func (p *Parser) parseAssignment(tokens []*token.Token, generatedCode *string) s
 	// generate code
 	*generatedCode += resCode
 
-	p.semi(tokens[p.pos])
+	p.semi(tokens)
 
 	return retValue
 }
 
 func (p *Parser) parseBinaryExpr(previousPrecedence int, tokens []*token.Token) astnode.ASTNode {
+	if p.pos >= len(tokens) {
+		panic("Expected expression")
+	}
+
 	var left, right astnode.ASTNode
 
 	{
@@ -217,17 +285,59 @@ func (p *Parser) getOperatorPrecedence(operator int) int {
 	return precedence
 }
 
-func (p *Parser) semi(actualToken *token.Token) {
-	scanner.MatchToken(actualToken, token.T_STATEMENT_TERMINATOR)
+func (p *Parser) semi(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected statement terminator")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_STATEMENT_TERMINATOR)
 	p.pos += 1
 }
 
-func (p *Parser) assignment(actualToken *token.Token) {
-	scanner.MatchToken(actualToken, token.T_ASSIGNMENT)
+func (p *Parser) assignment(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected assignment")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_ASSIGNMENT)
 	p.pos += 1
 }
 
-func (p *Parser) ident(actualToken *token.Token) {
-	scanner.MatchToken(actualToken, token.T_IDENTIFIER)
+func (p *Parser) ident(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected identifier")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_IDENTIFIER)
+	p.pos += 1
+}
+
+func (p *Parser) lbrace(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected left brace")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_LBRACE)
+	p.pos += 1
+}
+
+
+func (p *Parser) rbrace(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected right brace")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_RBRACE)
+	p.pos += 1
+}
+
+func (p *Parser) lparen(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected left parenthesis")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_LPAREN)
+	p.pos += 1
+}
+
+func (p *Parser) rparen(tokens []*token.Token) {
+	if p.pos >= len(tokens) {
+		panic("Expected right parenthesis")
+	}
+	scanner.MatchToken(tokens[p.pos], token.T_RPAREN)
 	p.pos += 1
 }

@@ -79,6 +79,18 @@ func (t *Tokenizer) Tokenize() []*token.Token {
 			} else {
 				panic("no symbol starting with " + string(ch) + " on line " + strconv.Itoa(t.lineCount) + " found\n")
 			}
+		} else if ch == token.TokenStringMap[token.T_LPAREN][0] {
+			tokens = append(tokens, token.NewToken(token.T_LPAREN))
+			t.poll()
+		} else if ch == token.TokenStringMap[token.T_RPAREN][0] {
+			tokens = append(tokens, token.NewToken(token.T_RPAREN))
+			t.poll()
+		} else if ch == token.TokenStringMap[token.T_LBRACE][0] {
+			tokens = append(tokens, token.NewToken(token.T_LBRACE))
+			t.poll()
+		} else if ch == token.TokenStringMap[token.T_RBRACE][0] {
+			tokens = append(tokens, token.NewToken(token.T_RBRACE))
+			t.poll()
 		} else if ch == token.TokenStringMap[token.T_STATEMENT_TERMINATOR][0] {
 			tokens = append(tokens, token.NewToken(token.T_STATEMENT_TERMINATOR))
 			t.poll()
@@ -147,6 +159,12 @@ func (t *Tokenizer) keyword(s *string) *token.Token {
 	}
 	if *s == token.TokenStringMap[token.T_INT] {
 		return token.NewToken(token.T_INT)
+	}
+	if *s == token.TokenStringMap[token.T_IF] {
+		return token.NewToken(token.T_IF)
+	}
+	if *s == token.TokenStringMap[token.T_ELSE] {
+		return token.NewToken(token.T_ELSE)
 	}
 	return nil
 }

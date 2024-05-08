@@ -20,6 +20,12 @@ const (
 	T_NE
 	T_LTE
 	T_GTE
+	T_IF
+	T_ELSE
+	T_LPAREN
+	T_RPAREN
+	T_LBRACE
+	T_RBRACE
 )
 
 const MAX_TOKEN_LENGTH = 512
@@ -35,6 +41,12 @@ var TokenStringMap = map[int]string{
 	T_NE:                   "!=",
 	T_LTE:                  "<=",
 	T_GTE:                  ">=",
+	T_IF:                   "if",
+	T_ELSE:                 "else",
+	T_LPAREN:               "(",
+	T_RPAREN:               ")",
+	T_LBRACE:               "{",
+	T_RBRACE:               "}",
 }
 
 type Token struct {

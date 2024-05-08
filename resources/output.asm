@@ -22,110 +22,110 @@ main:
 	push	rbp
 	mov	rbp, rsp
 	common a 8:8
-	mov r9, 50
-	mov [a], r9
+	mov r13, 50
+	mov [a], r13
 	common b 8:8
 	common c 8:8
-	mov r14, 20
-	mov r8, 30
-	cmp r14, r8
-	setl r14b
-	and r14, 255
-	mov [b], r14
-	mov r8, [a]
-	mov r14, 40
-	sub r8, r14
-	mov [c], r8
-	mov r8, [a]
-	mov r13, [b]
+	mov r8, 20
+	mov r12, 30
+	cmp r8, r12
+	setl r8b
+	and r8, 255
+	mov [b], r8
+	mov r14, [a]
+	mov r15, 40
+	sub r14, r15
+	mov [c], r14
+	mov r13, [a]
+	mov r8, [b]
 	mov r11, 3
-	imul r13, r11
-	add r8, r13
-	mov r11, 10
-	mov r9, [c]
-	mov rax, r11
+	imul r8, r11
+	add r13, r8
+	mov r12, 10
+	mov r10, [c]
+	mov rax, r12
 	cqo
-	idiv r9
-	mov r11, rax
-	sub r8, r11
-	mov rdi, r8
-	call printint
-	mov r13, 20
-	mov r10, 30
-	cmp r13, r10
-	setl r13b
-	and r13, 255
+	idiv r10
+	mov r12, rax
+	sub r13, r12
 	mov rdi, r13
 	call printint
-	mov r10, 30
-	mov r15, 20
-	cmp r10, r15
-	setl r10b
-	and r10, 255
-	mov rdi, r10
-	call printint
-	mov r11, 10
-	mov r8, 10
-	cmp r11, r8
-	setle r11b
+	mov r11, 20
+	mov r9, 30
+	cmp r11, r9
+	setl r11b
 	and r11, 255
 	mov rdi, r11
 	call printint
-	mov r12, 10
-	mov r14, 10
-	cmp r12, r14
-	setge r12b
-	and r12, 255
-	mov rdi, r12
+	mov r15, 30
+	mov r9, 20
+	cmp r15, r9
+	setl r15b
+	and r15, 255
+	mov rdi, r15
 	call printint
-	mov r10, 10
+	mov r8, 10
+	mov r9, 10
+	cmp r8, r9
+	setle r8b
+	and r8, 255
+	mov rdi, r8
+	call printint
 	mov r14, 10
-	cmp r10, r14
-	setl r10b
-	and r10, 255
-	mov rdi, r10
+	mov r15, 10
+	cmp r14, r15
+	setge r14b
+	and r14, 255
+	mov rdi, r14
+	call printint
+	mov r15, 10
+	mov r11, 10
+	cmp r15, r11
+	setl r15b
+	and r15, 255
+	mov rdi, r15
 	call printint
 	mov r9, 3
-	mov r13, 2
-	cmp r9, r13
+	mov r11, 2
+	cmp r9, r11
 	setg r9b
 	and r9, 255
 	mov rdi, r9
 	call printint
 	mov r15, 2
-	mov r8, 2
-	cmp r15, r8
+	mov r11, 2
+	cmp r15, r11
 	setge r15b
 	and r15, 255
 	mov rdi, r15
 	call printint
+	mov r12, 3
+	mov r10, 2
+	cmp r12, r10
+	sete r12b
+	and r12, 255
+	mov rdi, r12
+	call printint
 	mov r8, 3
-	mov r14, 2
-	cmp r8, r14
+	mov r11, 3
+	cmp r8, r11
 	sete r8b
 	and r8, 255
 	mov rdi, r8
 	call printint
-	mov r9, 3
 	mov r15, 3
-	cmp r9, r15
-	sete r9b
-	and r9, 255
-	mov rdi, r9
+	mov r8, 2
+	cmp r15, r8
+	setne r15b
+	and r15, 255
+	mov rdi, r15
 	call printint
-	mov r8, 3
-	mov r15, 2
-	cmp r8, r15
-	setne r8b
-	and r8, 255
-	mov rdi, r8
-	call printint
-	mov r9, 2
-	mov r15, 2
-	cmp r9, r15
-	setne r9b
-	and r9, 255
-	mov rdi, r9
+	mov r10, 2
+	mov r13, 2
+	cmp r10, r13
+	setne r10b
+	and r10, 255
+	mov rdi, r10
 	call printint
 
 	; Returning with code 0. 60 is code for sys_exit and 0 is return value
